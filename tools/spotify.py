@@ -10,9 +10,8 @@ load_dotenv()
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SEC = os.getenv("SPOTIFY_CLIENT_SECRET")
 
-# SPOTIFY ENDPOINTS
 GET_AUTH_ENDPOINT = "https://accounts.spotify.com/api/token"
-SEARCH_ENDPOINT = "https://api.spotify.com/v1/search"               # TODO: This endpoint no longer exists
+SEARCH_ENDPOINT = "https://api.spotify.com/v1/search"
 
 def check_response_code(response: Response, msg: str) -> dict:
     """Handles response codes from the calls and parses JSON for convenience"""
@@ -20,6 +19,7 @@ def check_response_code(response: Response, msg: str) -> dict:
         return json.loads(response.content)
 
     print(f"[ERROR]: Got error code {response.status_code} when {msg}")
+    print(response.content)
     return {}
 
 def get_token() -> dict:
@@ -41,13 +41,18 @@ def get_auth_header(token: str) -> dict:
     """Function to construct headers for interacting with API"""
     return {"Authorization": "Bearer " + token}
 
-def search_for_artist(token: str, artist_name: str) -> dict:
-    """Searches Spotify for an artist and returns general dictionary containing attributes"""
+def search_spotify(token: str, search_type: str, search_query: str) -> dict:
+    """
+    General function for searching something on Spotify
+    search_type Domain: {'album', 'artist', 'track'}
+    """
+    # Get the ID for the required search
     headers = get_auth_header(token)
-    query = f"q={artist_name}&type=artist&limit=1"
-    response = get(SEARCH_ENDPOINT + query, headers=headers)
+    cleaned_query = search_query.replace(" ", "%20")
 
-    return check_response_code(response, "trying to search for artist.")
+    url = SEARCH_ENDPOINT + f"?q={search_type}%3A{cleaned_query}&type={search_type}&limit=1"
+    response = get(url, headers=headers)
+    return check_response_code(response, f"trying to search for {search_type}.")
 
 def run():
     """Main function for interacting with Spotify"""
@@ -58,6 +63,16 @@ def run():
         return
 
     token = auth_token_json["access_token"]
-    print(search_for_artist(token, "Don Toliver"))
+    print("-----------------------------------------------------")
+    print("Drake:")
+    print(search_spotify(token, "artist", "Drake"))
+
+    print("\n-----------------------------------------------------")
+    print("Hardstone Pyscho:")
+    print(search_spotify(token, "album", "Hardstone Psycho"))
+
+    print("\n-----------------------------------------------------")
+    print("FWU:")
+    print(search_spotify(token, "track", "FWU"))
 
 run()
